@@ -39,7 +39,7 @@ class OrderModel(BaseModel):
     quantity: int
     order_statuses: Optional[str] = 'PENDING'
     user_id: Optional[int]
-    product_id: Optional[int]
+    product_id: int
 
     class Config:
         orm_model = True

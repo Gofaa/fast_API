@@ -133,7 +133,7 @@ async def delete_product_by_id(id: int, Authorize: AuthJWT = Depends()):
                             detail='Only SuperAdmin is allowed to delete product')
 
 
-@product_urls.patch('/update/{id}', status_code=status.HTTP_200_OK)
+@product_urls.put('/update/{id}', status_code=status.HTTP_200_OK)
 async def update_product_by_id(id: int, update_data: ProductModel, Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
@@ -166,3 +166,4 @@ async def update_product_by_id(id: int, update_data: ProductModel, Authorize: Au
     else:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Only SuperAdmin is allowed to update product")
+

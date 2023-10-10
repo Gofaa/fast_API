@@ -26,14 +26,14 @@ async def welcome_page(Authorize: AuthJWT = Depends()):
 async def make_order(order: OrderModel, Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
-        pass
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="enter valid access token")
 
     current_user = Authorize.get_jwt_subject()
     user = session.query(User).filter(User.username == current_user).first()
     new_order = Order(
-        quantity=order.quantity
+        quantity=order.quantity,
+        product_id=order.product_id
     )
 
     new_order.user = user
@@ -46,8 +46,14 @@ async def make_order(order: OrderModel, Authorize: AuthJWT = Depends()):
         'message': 'Order is successfully created',
         'data': {
             'id': new_order.id,
+            "product": {
+                "id": new_order.product_id,
+                "name": new_order.product.name,
+                "price": new_order.product.price
+            },
             'quantity': new_order.quantity,
-            'order_status': new_order.order_statuses
+            'order_status': new_order.order_statuses.value,
+            "total_price": new_order.quantity * new_order.product.price
         }
     }
 
@@ -73,7 +79,12 @@ async def list_all_order(Authorize: AuthJWT = Depends()):
                 'id': order.id,
                 'username': order.user.username,
                 'user_id': order.user_id,
-                'product_id': order.product_id,
+                "product": {
+                    "id": order.product_id,
+                    "name": order.product.name,
+                    "price": order.product.price,
+                    "total_price": order.quantity * order.product.price
+                },
                 'quantity': order.quantity,
                 'order_status': order.order_statuses.value,
             }
@@ -100,8 +111,17 @@ async def get_order_by_id(id: int, Authorize: AuthJWT = Depends()):
             response = {
                 'order_id': order.id,
                 'order_quantity': order.quantity,
-                'order_user_id': order.user_id,
-                'product_id': order.product_id,
+                'order_user': {
+                    "id": order.user.id,
+                    "name": order.user.username,
+                    "email": order.user.email
+                },
+                "product": {
+                    "id": order.product_id,
+                    "name": order.product.name,
+                    "price": order.product.price,
+                    "total_price": order.quantity * order.product.price
+                },
                 'order_status': order.order_statuses.value
             }
             return jsonable_encoder(response)
@@ -113,30 +133,30 @@ async def get_order_by_id(id: int, Authorize: AuthJWT = Depends()):
                             detail="Only SuperAdmin is allowed to this request")
 
 
-# @order_urls.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
-# async def delete_product_by_id(id: int, Authorize: AuthJWT = Depends()):
-#     try:
-#         Authorize.jwt_required()
-#     except Exception as e:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-#                             detail='enter valid access token')
-#     user = Authorize.get_jwt_subject()
-#     current_user = session.query(User).filter(User.username == user).first()
-#     if current_user.is_staff:
-#         product = session.query(Product).filter(Product.id == id).first()
-#         if product:
-#             session.delete(product)
-#             session.commit()
-#             data = {
-#                 "success": True,
-#                 'code': 200,
-#                 'message': f'product with ID {id} has been deleted',
-#                 'data': None
-#             }
-#             return jsonable_encoder(data)
-#         else:
-#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                                 detail=f"Product with ID {id} is not found")
-#     else:
-#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-#                             detail='Only SuperAdmin is allowed to delete product')
+@order_urls.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_by_id(id: int, Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail='enter valid access token')
+    user = Authorize.get_jwt_subject()
+    current_user = session.query(User).filter(User.username == user).first()
+    if current_user.is_staff:
+        product = session.query(Product).filter(Product.id == id).first()
+        if product:
+            session.delete(product)
+            session.commit()
+            data = {
+                "success": True,
+                'code': 200,
+                'message': f'product with ID {id} has been deleted',
+                'data': None
+            }
+            return jsonable_encoder(data)
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Product with ID {id} is not found")
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail='Only SuperAdmin is allowed to delete product')
